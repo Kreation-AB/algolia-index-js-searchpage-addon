@@ -13,6 +13,7 @@
         ])
         @endfield
       </div>
+      <div id="filters"></div>
       <div id="stats"></div>
       <div id="hits">
         @include('js.object.loader')

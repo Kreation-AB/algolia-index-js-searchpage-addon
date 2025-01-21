@@ -1,7 +1,7 @@
 import { liteClient } from 'algoliasearch/lite';
 import instantsearch from 'instantsearch.js';
 import { connectSearchBox, connectPagination, connectStats } from 'instantsearch.js/es/connectors'; 
-import { hits, configure} from 'instantsearch.js/es/widgets';
+import { hits, configure, refinementList} from 'instantsearch.js/es/widgets';
 
 document.addEventListener('DOMContentLoaded', function() {
   const searchClient = liteClient(
@@ -127,7 +127,24 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   ]);
 
-  /* End Stats */
+    search.addWidget(
+        refinementList({
+            container: "#filters",
+            attribute: "post_type_name",
+            sortBy: ['count:desc', 'name:asc'],
+            autoHideContainer: false,
+            templates: { 
+                item(item, { html }) {
+                    const { url, label, count, isRefined } = item;
+                    return html`
+                        <li><a href="${url}">${label} <span class="badge">${count}</span></a></li>
+                        `;
+                },
+           }
+        })
+    );
+
+    /* End Stats */
 
   /* Pagination */
   // Create the render function
