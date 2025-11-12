@@ -21,6 +21,7 @@
             ]
         ])
             @include('partials.searchField')
+            @include('partials.refinements')
             @include('partials.noresult')
             @include('partials.stats')
             @include('partials.hits')

@@ -1,5 +1,4 @@
 import { liteClient } from 'algoliasearch/lite'
-
 import type {
   SearchConfig,
   GenericSearchQueryParams,
@@ -10,37 +9,24 @@ import type {
 } from './types'
 import { decodeHtml } from './mappers'
 
-/**
- * Partial native Queryparameters
- */
+interface AlgoliaSearchResultItem extends WPPost {
+  _highlightResult?: {
+    post_title?: { value: string }
+    post_excerpt?: { value: string }
+  }
+}
+
+type AlgoliaHighlightField = 'post_title' | 'post_excerpt'
+
 export interface AlgoliaNativeQueryParams {
   hitsPerPage?: number
   page?: number
   query?: string
+  filters?: string
+  facetFilters?: string[][]
+  facets?: string[]
 }
-/**
- * Partial document structure
- */
-interface AlgoliaSearchResultItem extends WPPost {
-  _highlightResult?: {
-    post_title?: {
-      value: string
-    }
-    post_excerpt?: {
-      value: string
-    }
-  }
-}
-/**
- * Supported highlight fields
- */
-type AlgoliaHighlightField = 'post_title' | 'post_excerpt'
 
-/**
- * Native response to generic format conversion
- * @param response The response from the search adapter
- * @returns A generic search result item array
- */
 export const algoliaDataTransform = (
   response: AlgoliaSearchResultItem[]
 ): GenericSearchResultItem[] => {
@@ -63,49 +49,50 @@ export const algoliaDataTransform = (
   }))
 }
 
-/**
- * Converts generic search parameters to Algolia native query parameters
- * @param params The search query parameters to transform
- * @returns The native Algolia query parameters
- */
 export const algoliaParamTransform = (
   params: GenericSearchQueryParams
 ): AlgoliaNativeQueryParams => {
+  const filters: string[] = []
+  const facetFilters: string[][] = []
+
+  if (params.category) filters.push(`category:"${params.category}"`)
+  if (params.post_type_name && params.post_type_name.length > 0) {
+    facetFilters.push(params.post_type_name.map(type => `post_type_name:${type}`))
+  }
+
   return {
     hitsPerPage: params?.page_size ?? 20,
     page: params.page ? params.page - 1 : undefined,
     query: params.query,
+    filters: filters.length ? filters.join(' AND ') : undefined,
+    facetFilters: facetFilters.length ? facetFilters : undefined,
+    facets: ['post_type_name'],
   }
 }
 
-/**
- * The Adapter used to query Algolia
- * @param config The configuration of the Algolia connection
- * @returns A search operations object with a search method
- */
 export const AlgoliaAdapter = (config: SearchConfig): SearchService => {
   const searchClient = liteClient(config.applicationId, config.apiKey)
 
   return {
-    search: async (
-      params: GenericSearchQueryParams
-    ): Promise<GenericSearchResult> => {
-      const { results } =
-        await searchClient.searchForHits<AlgoliaSearchResultItem>({
-          requests: [
-            {
-              indexName: config.collectionName,
-              ...algoliaParamTransform(params),
-            },
-          ],
-        })
+    search: async (params: GenericSearchQueryParams): Promise<GenericSearchResult> => {
+      const { results } = await searchClient.searchForHits<AlgoliaSearchResultItem>({
+        requests: [
+          {
+            indexName: config.collectionName,
+            ...algoliaParamTransform(params),
+          },
+        ],
+      })
+
       return {
         query: params.query ?? '',
         totalHits: results[0]?.nbHits ?? 0,
         currentPage: results[0]?.page ? results[0]?.page + 1 : 1,
         totalPages: results[0]?.nbPages ?? 1,
         hits: algoliaDataTransform(results[0]?.hits ?? []),
+        facets: results[0]?.facets ?? {},
       }
     },
   }
 }
+

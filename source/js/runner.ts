@@ -4,6 +4,7 @@ import {
   SearchService,
   GenericSearchQueryParams,
   HtmlRunnerService,
+  GenericSearchResult,
 } from './types'
 import { setUrlSearchParam } from './url-param'
 
@@ -11,30 +12,29 @@ export const Runner = (
   binder: HtmlEventService,
   adapter: SearchService,
   html: HtmlRenderService
-): HtmlRunnerService => {
-  // Perfom search with the provided query
-  const exec = (params: GenericSearchQueryParams) => {
-    adapter.search(params).then(result => {
+): HtmlRunnerService & { html: HtmlRenderService } => {
+
+  const exec = (params: GenericSearchQueryParams): Promise<GenericSearchResult> => {
+    return adapter.search(params).then(result => {
       setUrlSearchParam(params.query)
       html.reset()
       html.renderStats(result)
       html.renderItems(result)
       html.renderPagination(result)
-      binder.registerPagination(
-        html.getPaginationContainer(),
-        (page: number) => {
-          exec({
-            ...params,
-            page,
-          })
-        }
-      )
+      html.renderFacets(result, params.post_type_name || [], (selected) => {
+        params.post_type_name = selected
+        exec(params)
+      })
+      binder.registerPagination(html.getPaginationContainer(), (page: number) => {
+        exec({ ...params, page })
+      })
+
+      return result
     })
   }
-  // Register event handlers and callback for input-field
+
   binder.registerSearchBox(html.getInputField(), exec)
 
-  return {
-    exec,
-  }
+  return { exec, html }
 }
+

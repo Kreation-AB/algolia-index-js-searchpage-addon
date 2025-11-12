@@ -6,10 +6,6 @@ import {
   GenericSearchQueryParams,
 } from './types'
 
-/**
- * Queries template content from the HTML document
- * @returns A string array of HTML templates
- */
 const getHtmlTemplates = (): string[] =>
   [
     'template[data-js-search-hit-template]',
@@ -20,28 +16,14 @@ const getHtmlTemplates = (): string[] =>
     'template[data-js-search-page-pagination-icon]',
   ].map(selector => document.querySelector(selector)?.innerHTML ?? '')
 
-/**
- * Queries elements from the HTML document
- * @returns An array of HTML elements
- */
 const getHtmlElements = (): HTMLElement[] =>
   [
     '[data-js-search-page-search-input]',
     '[data-js-search-page-hits]',
     '[data-js-search-page-pagination]',
-  ].map(
-    selector =>
-      document.querySelector(selector) || document.createElement('div')
-  )
+  ].map(selector => document.querySelector(selector) || document.createElement('div'))
 
-/**
- * Creates a service for manipulating HTML related to search results
- * @param params Generic search query parameters
- * @returns A service that provides methods to manipulate HTML for search results
- */
-export const HtmlRenderFactory = (
-  params: GenericSearchQueryParams
-): HtmlRenderService => {
+export const HtmlRenderFactory = (params: GenericSearchQueryParams): HtmlRenderService => {
   const [
     templateHitHtml = '',
     templateNoImgHtml = '',
@@ -54,121 +36,104 @@ export const HtmlRenderFactory = (
   const [searchInput, searchContainer, searchPagination] =
     getHtmlElements() as [HTMLInputElement, HTMLElement, HTMLElement]
 
-  const [
-    translateHit,
-    translateNoResults,
-    translateStats,
-    translatePaginationItem,
-    translatePaginationIcon,
-  ] = [
-    (item: GenericSearchResultItem): string =>
-      (item.image ? templateHitHtml : templateNoImgHtml)
-        .replaceAll('{SEARCH_JS_HIT_HEADING}', item.title)
-        .replaceAll('{SEARCH_JS_HIT_SUBHEADING}', item.subtitle)
-        .replaceAll('{SEARCH_JS_HIT_EXCERPT}', item.summary)
-        .replaceAll('{SEARCH_JS_HIT_IMAGE_URL}', item.image ?? '')
-        .replaceAll('{SEARCH_JS_HIT_IMAGE_ALT}', item.altText)
-        .replaceAll('{SEARCH_JS_HIT_LINK}', item.url),
-    (): string => templateNoResults,
-    ({ totalHits, query }: GenericSearchResult): string =>
-      templateStats
-        .replaceAll('{ALGOLIA_JS_STATS_COUNT}', String(totalHits))
-        .replaceAll('{ALGOLIA_JS_STATS_QUERY}', query),
-    (text: string, color: string, className: string): string =>
-      templatePaginationItem
-        .replaceAll('{ALGOLIA_JS_PAGINATION_TEXT}', text)
-        .replaceAll('{ALGOLIA_JS_PAGINATION_HREF}', '#')
-        .replaceAll('{ALGOLIA_JS_PAGINATION_COLOR}', color)
-        .replaceAll('{ALGOLIA_JS_PAGINATION_CLASS}', className)
-        .replaceAll('{ALGOLIA_JS_PAGINATION_PAGE_NUMBER}', text),
-    (page: string, icon: string): string =>
-      templatePaginationIcon
-        .replaceAll('{ALGOLIA_JS_PAGINATION_ICON}', icon)
-        .replaceAll('{ALGOLIA_JS_PAGINATION_HREF}', '#')
-        .replaceAll('{ALGOLIA_JS_PAGINATION_PAGE_NUMBER}', page),
-  ]
-  // Set initial value
-  searchInput.value = params.query || ''
-
   const append = (parent: Element, content: string): void =>
     parent.insertAdjacentHTML('beforeend', content)
 
+  const translateHit = (item: GenericSearchResultItem): string =>
+    (item.image ? templateHitHtml : templateNoImgHtml)
+      .replaceAll('{SEARCH_JS_HIT_HEADING}', item.title)
+      .replaceAll('{SEARCH_JS_HIT_SUBHEADING}', item.subtitle)
+      .replaceAll('{SEARCH_JS_HIT_EXCERPT}', item.summary)
+      .replaceAll('{SEARCH_JS_HIT_IMAGE_URL}', item.image ?? '')
+      .replaceAll('{SEARCH_JS_HIT_IMAGE_ALT}', item.altText)
+      .replaceAll('{SEARCH_JS_HIT_LINK}', item.url)
+
+  const translateNoResults = (): string => templateNoResults
+  const translateStats = ({ totalHits, query }: GenericSearchResult): string =>
+    templateStats
+      .replaceAll('{ALGOLIA_JS_STATS_COUNT}', String(totalHits))
+      .replaceAll('{ALGOLIA_JS_STATS_QUERY}', query)
+
+  const translatePaginationItem = (text: string, color: string, className: string): string =>
+    templatePaginationItem
+      .replaceAll('{ALGOLIA_JS_PAGINATION_TEXT}', text)
+      .replaceAll('{ALGOLIA_JS_PAGINATION_HREF}', '#')
+      .replaceAll('{ALGOLIA_JS_PAGINATION_COLOR}', color)
+      .replaceAll('{ALGOLIA_JS_PAGINATION_CLASS}', className)
+      .replaceAll('{ALGOLIA_JS_PAGINATION_PAGE_NUMBER}', text)
+
+  const translatePaginationIcon = (page: string, icon: string): string =>
+    templatePaginationIcon
+      .replaceAll('{ALGOLIA_JS_PAGINATION_ICON}', icon)
+      .replaceAll('{ALGOLIA_JS_PAGINATION_HREF}', '#')
+      .replaceAll('{ALGOLIA_JS_PAGINATION_PAGE_NUMBER}', page)
+
+  searchInput.value = params.query || ''
+
+  const renderPostTypeFacetButtons = (
+    facets: Record<string, number>,
+    selected: string[],
+    onChange: (selected: string[]) => void
+  ) => {
+    const container = document.querySelector('#search-refinements')!
+    let posttypes = ['Sidor', 'Nyheter', 'Evenemang', 'Protokoll', 'Badplatser', 'Kallelser', 'Förtroendevalda'];
+    container.innerHTML = ''
+    //Loop posttypes
+    posttypes.forEach(pt => {
+    let count = 0;
+    if(facets && facets[pt]) {
+        count = facets[pt];
+    }
+    const isActive = selected.includes(pt)
+    let li = document.createElement('li');
+    li.className = 'ais-RefinementList-item'
+    if (isActive) {
+        li.classList.add('ais-RefinementList-item--selected')
+    }
+    let a = document.createElement('a');
+    a.href = '#';
+    a.innerHTML = `${pt} <span class="badge">${count}</span>`;
+    let div = document.createElement('div');
+    div.appendChild(a);
+    li.appendChild(div);
+      a.addEventListener('click', () => {
+        const newSelected = isActive ? selected.filter(t => t !== pt) : [...selected, pt]
+        onChange(newSelected)
+      })
+      container.appendChild(li)
+    })
+  }
+
   return {
-    /**
-     * Returns the input field for search queries
-     * @returns The search input field element
-     */
     getInputField: () => searchInput,
-    /**
-     * Returns the pagination container for search results
-     * @returns The pagination container element
-     */
     getPaginationContainer: () => searchPagination,
-    /**
-     * Resets the search results and pagination
-     */
     reset: () => {
       searchContainer.innerHTML = ''
       searchPagination.innerHTML = ''
     },
-    /**
-     * Render stats for the search results
-     * @param result The search result to translate into HTML
-     */
-    renderStats: (result: GenericSearchResult): void => {
-      append(searchContainer, translateStats(result))
-    },
-    /**
-     * Render search result items
-     * @param result The search result to translate into HTML
-     */
-    renderItems: (result: GenericSearchResult): void => {
+    renderStats: (result) => append(searchContainer, translateStats(result)),
+    renderItems: (result) => {
       if (result.hits.length > 0) {
-        // Has results
         result.hits.forEach(hit => append(searchContainer, translateHit(hit)))
       } else {
-        // No results
         append(searchContainer, translateNoResults())
       }
     },
-    /**
-     * Render pagination for the search results
-     * @param result The search result to translate into HTML pagination
-     */
-    renderPagination: (result: GenericSearchResult): void => {
+    renderPagination: (result) => {
       const service = PaginationFactory(result)
-
-      // Back button
       if (!service.isFirstPage()) {
-        append(
-          searchPagination,
-          translatePaginationIcon(
-            String(result.currentPage - 1),
-            'keyboard_arrow_left'
-          )
-        )
+        append(searchPagination, translatePaginationIcon(String(result.currentPage - 1), 'keyboard_arrow_left'))
       }
       service.getVisibleItems().forEach(id => {
-        const [color, className] =
-          id === result.currentPage
-            ? ['primary', 'c-pagination--is-active']
-            : ['default', '']
-
-        append(
-          searchPagination,
-          translatePaginationItem(String(id), color, className)
-        )
+        const [color, className] = id === result.currentPage ? ['primary', 'c-pagination--is-active'] : ['default', '']
+        append(searchPagination, translatePaginationItem(String(id), color, className))
       })
-      // Forward button
       if (!service.isLastPage()) {
-        append(
-          searchPagination,
-          translatePaginationIcon(
-            String(result.currentPage + 1),
-            'keyboard_arrow_right'
-          )
-        )
+        append(searchPagination, translatePaginationIcon(String(result.currentPage + 1), 'keyboard_arrow_right'))
       }
+    },
+    renderFacets: (result: GenericSearchResult, selected: string[], onChange: (selected: string[]) => void) => {
+        renderPostTypeFacetButtons(result.facets.post_type_name, selected, onChange)
     },
   }
 }
