@@ -83,6 +83,12 @@ export const AlgoliaAdapter = (config: SearchConfig): SearchService => {
           },
         ],
       })
+      
+      if (Object.keys(window.facetList || {}).length === 0 && results[0]?.facets?.post_type_name) {
+            console.log(window.facetList)
+            console.log('Setting global facetList variable')
+            window.facetList = results[0].facets.post_type_name
+      }
 
       return {
         query: params.query ?? '',

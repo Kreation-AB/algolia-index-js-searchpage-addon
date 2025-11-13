@@ -17,9 +17,11 @@ export const HtmlEventFactory = ({
   registerSearchBox: (element, callback) => {
     // Callback on input
     if (searchAsYouType) {
-      element?.addEventListener('input', ({ target }) =>
+      element?.addEventListener('input', ({ target }) => {
+        window.facetList = {} // Reset global posttypes on new search
+        console.log('Resetting global facetList variable')
         callback({ query: (target as HTMLInputElement).value })
-      )
+      })
       return
     }
     // Callback on enter key press

@@ -76,32 +76,30 @@ export const HtmlRenderFactory = (params: GenericSearchQueryParams): HtmlRenderS
     onChange: (selected: string[]) => void
   ) => {
     const container = document.querySelector('#search-refinements')!
-    let posttypes = ['Sidor', 'Nyheter', 'Evenemang', 'Protokoll', 'Badplatser', 'Kallelser', 'Förtroendevalda'];
+    let facetList = window.facetList || {};
     container.innerHTML = ''
-    //Loop posttypes
-    posttypes.forEach(pt => {
-    let count = 0;
-    if(facets && facets[pt]) {
-        count = facets[pt];
-    }
-    const isActive = selected.includes(pt)
-    let li = document.createElement('li');
-    li.className = 'ais-RefinementList-item'
-    if (isActive) {
-        li.classList.add('ais-RefinementList-item--selected')
-    }
-    let a = document.createElement('a');
-    a.href = '#';
-    a.innerHTML = `${pt} <span class="badge">${count}</span>`;
-    let div = document.createElement('div');
-    div.appendChild(a);
-    li.appendChild(div);
-      a.addEventListener('click', () => {
-        const newSelected = isActive ? selected.filter(t => t !== pt) : [...selected, pt]
-        onChange(newSelected)
-      })
-      container.appendChild(li)
-    })
+   
+    //Loop through facets to build global facetList with counts
+    Object.keys(facetList).forEach(pt => {
+        const isActive = selected.includes(pt)
+        const count = facetList[pt] || 0;
+        let li = document.createElement('li');
+        li.className = 'ais-RefinementList-item'
+        if (isActive) {
+            li.classList.add('ais-RefinementList-item--selected')
+        }
+        let a = document.createElement('a');
+        a.href = '#';
+        a.innerHTML = `${pt} <span class="badge">${count}</span>`;
+        let div = document.createElement('div');
+        div.appendChild(a);
+        li.appendChild(div);
+        a.addEventListener('click', () => {
+            const newSelected = isActive ? selected.filter(t => t !== pt) : [...selected, pt]
+            onChange(newSelected)
+        })
+        container.appendChild(li)
+    });
   }
 
   return {

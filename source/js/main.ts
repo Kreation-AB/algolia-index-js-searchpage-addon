@@ -7,9 +7,9 @@ import { SearchConfig, GenericSearchQueryParams, GenericSearchResult } from './t
 // PHP Provided configuration
 declare const searchConfig: SearchConfig
 declare const searchParams: GenericSearchQueryParams
+window.facetList = {}
 
-let facetCounts: Record<string, number> = {}
-
+//Declare a global variable for facetCount
 document.addEventListener('DOMContentLoaded', function () {
   const runner = Runner(
     HtmlEventFactory(searchConfig),
