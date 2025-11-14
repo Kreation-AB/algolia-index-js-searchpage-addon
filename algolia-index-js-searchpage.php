@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name:       Algolia Index Js Search Page
+ * Plugin Name:       Algolia Index Js Search Page (Fork)
  * Plugin URI:        (#plugin_url#)
  * Description:       Replaces search page with a js (instant search) page.
  * Version: 3.3.7
